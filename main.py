@@ -35,6 +35,10 @@ events_col = db["pattern_events"]
 
 collection.create_index("period", unique=True)
 
+# ---------- ENV CREDENTIALS ----------
+PHONE = os.getenv("WINGO_PHONE")
+PASSWORD = os.getenv("WINGO_PASSWORD")
+
 # ---------- SELENIUM FUNCTIONS ----------
 
 def handle_popups(driver):
@@ -47,6 +51,59 @@ def handle_popups(driver):
                     time.sleep(0.5)
     except:
         pass
+
+def perform_login(driver):
+    """ဝဘ်ဆိုဒ်မှ အကောင့်ပြန်ထွက်သွားပါက အလိုအလျောက် Login ပြန်ဝင်ပေးမည့် သီးသန့်စနစ်"""
+    print("🔑 Redirected to login page. Performing auto-login...")
+    wait = WebDriverWait(driver, 15)
+    try:
+        handle_popups(driver)
+        
+        # သင့်မူရင်း wingobot5.py ထဲမှ selector များအတိုင်း ကွက်တိအလုပ်လုပ်စေခြင်း
+        phone_input = wait.until(EC.presence_of_element_located((By.NAME, "userNumber")))
+        phone_input.clear()
+        phone_input.send_keys(PHONE)
+        
+        password_input = driver.find_element(By.XPATH, "//input[@type='password']")
+        password_input.clear()
+        password_input.send_keys(PASSWORD)
+        
+        login_btn = driver.find_element(By.XPATH, "//button[contains(@class, 'active')]")
+        driver.execute_script("arguments[0].click();", login_btn)
+        
+        print("✅ Login credentials submitted. Waiting for session...")
+        time.sleep(8)
+        return True
+    except Exception as e:
+        print(f"❌ Auto-Login Failed: {e}")
+        return False
+
+def navigate_to_wingo_30s(driver):
+    """WinGo စာမျက်နှာသို့ သွားပြီး 30s Mode သို့ ကူးပြောင်းပေးသည့် စနစ်"""
+    print("🎮 Navigating to WinGo Game Page...")
+    driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
+    time.sleep(6)
+    handle_popups(driver)
+    
+    print("⏳ Switching to 30 Seconds Game Mode...")
+    wait = WebDriverWait(driver, 15)
+    try:
+        thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.橫, "//div[contains(text(), '30s')]")))
+        driver.execute_script("arguments[0].click();", thirty_sec_btn)
+        time.sleep(3)
+        print("✅ Successfully switched to 30s Mode.")
+    except Exception as tab_err:
+        print(f"⚠️ Primary Tab navigation failed, trying fallback... Error: {tab_err}")
+        try:
+            tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
+            for tab in tabs:
+                if "30s" in tab.text:
+                    driver.execute_script("arguments[0].click();", tab)
+                    print("✅ Fallback switched to 30s Mode successfully.")
+                    break
+        except Exception as fb_err:
+            print(f"❌ Both Navigation Methods Failed: {fb_err}")
+    time.sleep(2)
 
 def get_latest_row_data(driver):
     handle_popups(driver)
@@ -114,7 +171,7 @@ def check_and_log_patterns(trigger_period):
                 print(f"🚨 Pattern Detected: 8-Period ZIGZAG ({trigger_period})")
 
 def run_scraper_bot():
-    print("🤖 Starting Headless Selenium Scraper Thread with Anti-Bot Bypass...")
+    print("🤖 Starting Headless Selenium Scraper Thread with Hybrid Recovery Logic...")
     
     options = Options()
     options.add_argument("--headless=new")
@@ -122,32 +179,22 @@ def run_scraper_bot():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
-    
-    # 🕵️‍♂️ စက်ရုပ်မှန်းမသိအောင် လူသုံးများသည့် Windows Chrome User-Agent အဖြစ် အသွင်ပြောင်းခြင်း
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     
-    driver = webdriver.Chrome(options=options)
-    wait = WebDriverWait(driver, 10) # Timeout ကို ၁၀ စက္ကန့် သတ်မှတ်ပါတယ်
-    last_period = ""
-    
+    driver = None
     try:
-        driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
-        time.sleep(8)
-        handle_popups(driver)
+        driver = webdriver.Chrome(options=options)
+        driver.set_page_load_timeout(40)
         
-        print("⏳ Navigating to 30 Seconds Game Mode...")
-        try:
-            thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
-            driver.execute_script("arguments[0].click();", thirty_sec_btn)
-            time.sleep(3)
-        except Exception as tab_err:
-            print(f"⚠️ Tab Navigation Issue (Might be blocked): {tab_err}")
+        # စတင်ပွင့်ချင်း ပထမဦးဆုံးအကြိမ် WinGo သို့ တိုက်ရိုက်သွားခြင်း
+        navigate_to_wingo_30s(driver)
+        
+        last_period = ""
+        print("🚀 Scraper Loop is now active...")
         
         while True:
             try:
                 handle_popups(driver)
-                
-                # 🔍 Element ကို ရှာဖွေခြင်း
                 period_el = driver.find_element(By.CLASS_NAME, "TimeLeft__C-id")
                 p_num = period_el.text
                 
@@ -175,23 +222,27 @@ def run_scraper_bot():
                     last_period = p_num
                     
             except Exception as loop_error:
-                # 📢 Error တက်ပါက လက်ရှိ Render ပေါ်တွင် ဘာစာမျက်နှာကြီး ပွင့်နေလဲဆိုတာ အသေအချာ သိရှိနိုင်ရန် Debug Output ထုတ်ခြင်း
-                print(f"⚠️ Loop Error Details: {loop_error}")
-                print(f"ℹ️ Current Page Title on Cloud: '{driver.title}' | URL: {driver.current_url}")
+                current_url = driver.current_url
+                print(f"⚠️ Loop Exception! URL='{current_url}' | Title='{driver.title}'")
                 
-                # အကယ်၍ အကြောင်းအမျိုးမျိုးကြောင့် Page ကြီး Block သွားပါက အစကနေ ပြန်ပွင့်စေရန် Refresh ပြုလုပ်ခြင်း
-                if "Cloudflare" in driver.title or not driver.title:
-                    print("🔄 Detected Potential Anti-Bot Block. Refreshing page...")
-                    driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
-                    time.sleep(8)
-                    try:
-                        thirty_sec_btn = driver.find_element(By.XPATH, "//div[contains(text(), '30s')]")
-                        driver.execute_script("arguments[0].click();", thirty_sec_btn)
-                    except: pass
+                # 🧠 သင့်ဗျူဟာ + ခွဲခြားမှုစနစ် ပေါင်းစပ်ထားသော နေရာဖြစ်ပါတယ်
+                if "login" in current_url:
+                    # အခြေအနေ (က) - အကယ်၍ Login Page သို့ ရောက်သွားပါက အကောင့် အရင်ဝင်မည်
+                    if perform_login(driver):
+                        navigate_to_wingo_30s(driver)
+                else:
+                    # အခြေအနေ (ခ) - URL က WinGo ထဲမှာပဲ ရှိနေသေးရင် သင့်အိုင်ဒီယာအတိုင်း စာမျက်နှာကို ပြန်လည်ဝင်ရောက်မည်
+                    print("🔄 Still on WinGo page but element missing. Re-navigating to fix lag/popups...")
+                    navigate_to_wingo_30s(driver)
                 
                 time.sleep(3)
+                
+    except Exception as fatal_bot_error:
+        print(f"🔥 FATAL BOT THREAD ERROR: {fatal_bot_error}")
     finally:
-        driver.quit()
+        if driver:
+            print("🛑 Closing Driver instance.")
+            driver.quit()
 
 # ---------- API ENDPOINTS ----------
 
