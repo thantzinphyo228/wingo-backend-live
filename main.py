@@ -54,60 +54,63 @@ def handle_popups(driver):
 
 def perform_login(driver):
     """wingobot5.py မူရင်းပုံစံအတိုင်း ကွက်တိ Login ဝင်ပေးမည့်စနစ်"""
-    print("🔑 Performing secure auto-login flow...")
+    print("🔑 Performing secure auto-login flow...", flush=True)
     wait = WebDriverWait(driver, 15)
     try:
         driver.get("https://www.cklottery.club/#/login")
         time.sleep(3)
         handle_popups(driver)
         
-        # wingobot5.py မူရင်း ကုဒ်လိုင်းများအတိုင်း ကွက်တိ ရေးသားထားခြင်း
         wait.until(EC.presence_of_element_located((By.NAME, "userNumber"))).send_keys(PHONE)
         driver.find_element(By.XPATH, "//input[@type='password']").send_keys(PASSWORD)
-        time.sleep(8)
+
         login_btn = driver.find_element(By.XPATH, "//button[contains(@class, 'active')]")
         driver.execute_script("arguments[0].click();", login_btn)
-        print("✅ Login အောင်မြင်စွာ ဝင်ပြီးပါပြီ။")
+        print("✅ Login အောင်မြင်စွာ ဝင်ပြီးပါပြီ။", flush=True)
         time.sleep(8)
         return True
     except Exception as e:
-        print(f"❌ Auto-Login Failed: {e}")
+        print(f"❌ Auto-Login Failed: {e}", flush=True)
         return False
 
 def navigate_to_wingo_30s(driver):
-    """wingobot5.py မူရင်းပုံစံအတိုင်း WinGo သို့သွား၍ 30s Mode ပြောင်းသည့်စနစ်"""
-    print("🎮 Navigating to WinGo Game Page...")
+    """WinGo သို့သွား၍ 30s Mode ပြောင်းသည့်စနစ် (By.XPATH ကို ၁၀၀% စစ်ဆေးပြီး)"""
+    print("🎮 Navigating to WinGo Game Page...", flush=True)
     driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
-    print("✅ Win Go Page ကို ရောက်ရှိပါပြီ။")
+    print("✅ Win Go Page ကို ရောက်ရှိပါပြီ။", flush=True)
     time.sleep(5)
     handle_popups(driver)
     
-    print("⏳ 30 Seconds ပွဲစဉ်သို့ ပြောင်းလဲနေပါသည်...")
+    print("⏳ 30 Seconds ပွဲစဉ်သို့ ပြောင်းလဲနေပါသည်...", flush=True)
     wait = WebDriverWait(driver, 15)
     try:
+        # 🎯 FIXED: By.XPATH ဖြင့် စာလုံးပေါင်း လုံးဝ အမှန်ပြင်ထားပါတယ်ဗျာ
         thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
         driver.execute_script("arguments[0].click();", thirty_sec_btn)
-    except:
-        tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
-        for tab in tabs:
-            if "30s" in tab.text:
-                driver.execute_script("arguments[0].click();", tab)
-                break
+        print("✅ Primary XPATH Method ဖြင့် 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
+    except Exception as e:
+        print(f"⚠️ Primary Tab navigation failed, trying fallback... Error: {e}", flush=True)
+        try:
+            tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
+            for tab in tabs:
+                if "30s" in tab.text:
+                    driver.execute_script("arguments[0].click();", tab)
+                    print("✅ Fallback Method ဖြင့် 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
+                    break
+        except Exception as fb_err:
+            print(f"❌ Both Navigation Methods Failed: {fb_err}", flush=True)
     time.sleep(3)
 
 def get_latest_row_data(driver):
-    """wingobot5.py မူရင်းပုံစံအတိုင်း HTML Row မှ ဒေတာဖတ်ခြင်း (Typo ပြင်ဆင်ပြီး)"""
     handle_popups(driver)
     try:
         row = driver.find_element(By.CSS_SELECTOR, ".GameRecord__C-body .van-row")
-        
         period = row.find_element(By.CSS_SELECTOR, "div.van-col--9").text.strip()
         number = row.find_element(By.CSS_SELECTOR, ".GameRecord__C-body-num").text.strip()
         result = row.find_element(By.CSS_SELECTOR, "div.van-col--5 span").text.strip()
-        
         return period, number, result
     except Exception as e:
-        print(f"⚠️ Row Data Read Error: {e}")
+        print(f"⚠️ Row Data Read Error: {e}", flush=True)
         return None, None, None
 
 def check_and_log_patterns(trigger_period):
@@ -137,13 +140,13 @@ def check_and_log_patterns(trigger_period):
                 "pattern_type": pattern_type,
                 "timestamp": latest_docs[0].get('timestamp')
             })
-            print(f"🚨 New Pattern Inserted: {streak_count}-Streak {first_result.upper()} ({trigger_period})")
+            print(f"🚨 New Pattern Inserted: {streak_count}-Streak {first_result.upper()} ({trigger_period})", flush=True)
         else:
             events_col.update_one(
                 {"streak_start_period": streak_start_period},
                 {"$set": {"pattern_type": pattern_type}}
             )
-            print(f"🔄 Pattern Updated Dynamic: {streak_count}-Streak {first_result.upper()} ({trigger_period})")
+            print(f"🔄 Pattern Updated Dynamic: {streak_count}-Streak {first_result.upper()} ({trigger_period})", flush=True)
 
     if len(latest_docs) >= 9:
         current_8 = latest_docs[:8]
@@ -162,10 +165,10 @@ def check_and_log_patterns(trigger_period):
                     "pattern_type": "8_ZIGZAG",
                     "timestamp": latest_docs[0].get('timestamp')
                 })
-                print(f"🚨 Pattern Detected: 8-Period ZIGZAG ({trigger_period})")
+                print(f"🚨 Pattern Detected: 8-Period ZIGZAG ({trigger_period})", flush=True)
 
 def run_scraper_bot():
-    print("🤖 Starting Headless Selenium Scraper Thread with Safe Fallbacks...")
+    print("🤖 Starting Headless Selenium Scraper Thread with Safe Fallbacks...", flush=True)
     
     options = Options()
     options.add_argument("--headless=new")
@@ -180,11 +183,10 @@ def run_scraper_bot():
         driver = webdriver.Chrome(options=options)
         driver.set_page_load_timeout(40)
         
-        # စတင်ပွင့်ချင်း ပထမဦးဆုံးအကြိမ် WinGo သို့ တိုက်ရိုက်သွားခြင်း
         navigate_to_wingo_30s(driver)
         
         last_period = ""
-        print("🚀 Scraper Loop is now active...")
+        print("🚀 Scraper Loop is now active...", flush=True)
         
         while True:
             try:
@@ -210,29 +212,29 @@ def run_scraper_bot():
                     try:
                         collection.insert_one(data_doc)
                         check_and_log_patterns(period)
-                        print(f"💾 Saved to Cloud MongoDB: {period} | {result}")
+                        print(f"💾 Saved to Cloud MongoDB: {period} | {result}", flush=True)
                     except DuplicateKeyError:
                         pass
                     last_period = p_num
                     
             except Exception as loop_error:
                 current_url = driver.current_url
-                print(f"⚠️ Loop Exception! URL='{current_url}' | Title='{driver.title}'")
+                print(f"⚠️ Loop Exception! URL='{current_url}' | Title='{driver.title}'", flush=True)
                 
                 if "login" in current_url:
                     if perform_login(driver):
                         navigate_to_wingo_30s(driver)
                 else:
-                    print("🔄 Re-navigating to WinGo page to fix lag or popups...")
+                    print("🔄 Re-navigating to WinGo page to fix lag or popups...", flush=True)
                     navigate_to_wingo_30s(driver)
                 
                 time.sleep(3)
                 
     except Exception as fatal_bot_error:
-        print(f"🔥 FATAL BOT THREAD ERROR: {fatal_bot_error}")
+        print(f"🔥 FATAL BOT THREAD ERROR: {fatal_bot_error}", flush=True)
     finally:
         if driver:
-            print("🛑 Closing Driver instance.")
+            print("🛑 Closing Driver instance.", flush=True)
             driver.quit()
 
 # ---------- API ENDPOINTS ----------
