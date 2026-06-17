@@ -60,32 +60,26 @@ def get_latest_row_data(driver):
         return None, None, None
 
 def check_and_log_patterns(trigger_period):
-    # Long streaks (စံချိန်အရှည်ကြီးများ) ကိုပါ လှမ်းမိစေရန် limit ကို ၅၀ အထိ တိုးမြှင့်ထားပါတယ်
     latest_docs = list(collection.find().sort("period", -1).limit(50))
     if len(latest_docs) < 7:
         return
         
-    first_result = latest_docs[0]['result'] # 'Big' သို့မဟုတ် 'Small'
+    first_result = latest_docs[0]['result']
     streak_count = 0
     
-    # 🔄 လက်ရှိရလဒ်အတိုင်း နောက်ကြောင်းပြန်ပြီး Streak အစစ်အမှန်ကို ရေတွက်ခြင်း
     for doc in latest_docs:
         if doc['result'] == first_result:
-            count += 1
+            streak_count += 1
         else:
             break
             
-    # Streak က ၇ ကြိမ်နှင့်အထက် ရှိပါက Pattern အဖြစ် သတ်မှတ်မည်
     if streak_count >= 7:
-        # ဤ Streak ကြီး လုံးဝစတင်ခဲ့သည့် ပွဲစဉ် (Period) ID ကို ရှာဖွေခြင်း
         streak_start_period = latest_docs[streak_count - 1]['period']
         pattern_type = f"{streak_count}_STREAK_{first_result.upper()}"
         
-        # ယခု Streak စတင်မှုသည် ဒေတာဘေ့စ်ထဲတွင် မှတ်တမ်းတင်ပြီးသား ရှိ/မရှိ စစ်ဆေးခြင်း
         existing_event = events_col.find_one({"streak_start_period": streak_start_period})
         
         if not existing_event:
-            # လုံးဝအသစ်စတင်သော Streak ဖြစ်ပါက ဒေတာအသစ်အဖြစ် စတင်သိမ်းဆည်းမည်
             events_col.insert_one({
                 "trigger_period": trigger_period,
                 "streak_start_period": streak_start_period,
@@ -94,17 +88,12 @@ def check_and_log_patterns(trigger_period):
             })
             print(f"🚨 New Pattern Inserted: {streak_count}-Streak {first_result.upper()} ({trigger_period})")
         else:
-            # အကယ်၍ ရှိပြီးသား Streak အဟောင်း ဆက်လက်ရှည်လျားလာခြင်း ဖြစ်ပါက ဒေတာအသစ်ထပ်မတိုးဘဲ 
-            # စာသားအမည်ကိုသာ တိုးမြှင့်ပေးမည် (ဥပမာ- 7-Streak မှ 8, 9-Streak သို့ ဒိုင်နမစ် အပ်ဒိတ်လုပ်ခြင်း)
             events_col.update_one(
                 {"streak_start_period": streak_start_period},
                 {"$set": {"pattern_type": pattern_type}}
             )
             print(f"🔄 Pattern Updated Dynamic: {streak_count}-Streak {first_result.upper()} ({trigger_period})")
 
-    # -------------------------------------------------------------
-    # ၈ ကြိမ် ဇစ်ဇက် (8-Period Alternating) စစ်ဆေးခြင်း (ပုံမှန်အတိုင်း ဆက်ထားပါမည်)
-    # -------------------------------------------------------------
     if len(latest_docs) >= 9:
         current_8 = latest_docs[:8]
         ninth_item = latest_docs[8]
@@ -118,55 +107,48 @@ def check_and_log_patterns(trigger_period):
             if not events_col.find_one({"trigger_period": trigger_period, "pattern_type": "8_ZIGZAG"}):
                 events_col.insert_one({
                     "trigger_period": trigger_period,
-                    "streak_start_period": trigger_period, # ဇစ်ဇက်အတွက်ပါ standard ကိုက်ညီအောင်ထားခြင်း
+                    "streak_start_period": trigger_period,
                     "pattern_type": "8_ZIGZAG",
                     "timestamp": latest_docs[0].get('timestamp')
                 })
                 print(f"🚨 Pattern Detected: 8-Period ZIGZAG ({trigger_period})")
 
 def run_scraper_bot():
-    """Cloud ပေါ်တွင် မျက်နှာပြင်မပါဘဲ ၂၄ နာရီပတ်လုံး Background Thread အနေဖြင့် မောင်းမည့် Bot"""
-    print("🤖 Starting Headless Selenium Scraper Thread...")
+    print("🤖 Starting Headless Selenium Scraper Thread with Anti-Bot Bypass...")
     
     options = Options()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080") # Headless တွင် Element များ ပိုမိုရှာဖွေရလွယ်ကူစေရန် Window Size သတ်မှတ်ခြင်း
+    options.add_argument("--window-size=1920,1080")
+    
+    # 🕵️‍♂️ စက်ရုပ်မှန်းမသိအောင် လူသုံးများသည့် Windows Chrome User-Agent အဖြစ် အသွင်ပြောင်းခြင်း
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     
     driver = webdriver.Chrome(options=options)
-    wait = WebDriverWait(driver, 15)
+    wait = WebDriverWait(driver, 10) # Timeout ကို ၁၀ စက္ကန့် သတ်မှတ်ပါတယ်
     last_period = ""
     
     try:
         driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
-        time.sleep(6)
+        time.sleep(8)
         handle_popups(driver)
         
-        # ⏳ 30 Seconds ပွဲစဉ်သို့ ပြောင်းလဲခြင်း စနစ် (ပြန်လည်ထည့်သွင်းပေးထားပါသည်)
         print("⏳ Navigating to 30 Seconds Game Mode...")
         try:
             thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
             driver.execute_script("arguments[0].click();", thirty_sec_btn)
-        except:
-            try:
-                tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
-                for tab in tabs:
-                    if "30s" in tab.text:
-                        driver.execute_script("arguments[0].click();", tab)
-                        break
-            except Exception as tab_err:
-                print(f"⚠️ Tab selection fallback error: {tab_err}")
-                
-        time.sleep(4) # Tab ပြောင်းပြီးနောက် page ငြိမ်အောင် ခဏစောင့်ခြင်း
+            time.sleep(3)
+        except Exception as tab_err:
+            print(f"⚠️ Tab Navigation Issue (Might be blocked): {tab_err}")
         
         while True:
             try:
                 handle_popups(driver)
                 
-                # Cloud ပေါ်တွင် Explicit Wait စနစ်ဖြင့် Element ကို သေချာစွာ ရှာဖွေခြင်း
-                period_el = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "TimeLeft__C-id")))
+                # 🔍 Element ကို ရှာဖွေခြင်း
+                period_el = driver.find_element(By.CLASS_NAME, "TimeLeft__C-id")
                 p_num = period_el.text
                 
                 if len(p_num) < 10 or p_num == last_period:
@@ -192,9 +174,22 @@ def run_scraper_bot():
                         pass
                     last_period = p_num
                     
-            except Exception as e:
-                print(f"⚠️ Loop Error: {e}")
-                time.sleep(2)
+            except Exception as loop_error:
+                # 📢 Error တက်ပါက လက်ရှိ Render ပေါ်တွင် ဘာစာမျက်နှာကြီး ပွင့်နေလဲဆိုတာ အသေအချာ သိရှိနိုင်ရန် Debug Output ထုတ်ခြင်း
+                print(f"⚠️ Loop Error Details: {loop_error}")
+                print(f"ℹ️ Current Page Title on Cloud: '{driver.title}' | URL: {driver.current_url}")
+                
+                # အကယ်၍ အကြောင်းအမျိုးမျိုးကြောင့် Page ကြီး Block သွားပါက အစကနေ ပြန်ပွင့်စေရန် Refresh ပြုလုပ်ခြင်း
+                if "Cloudflare" in driver.title or not driver.title:
+                    print("🔄 Detected Potential Anti-Bot Block. Refreshing page...")
+                    driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
+                    time.sleep(8)
+                    try:
+                        thirty_sec_btn = driver.find_element(By.XPATH, "//div[contains(text(), '30s')]")
+                        driver.execute_script("arguments[0].click();", thirty_sec_btn)
+                    except: pass
+                
+                time.sleep(3)
     finally:
         driver.quit()
 
