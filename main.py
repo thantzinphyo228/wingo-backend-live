@@ -53,29 +53,36 @@ def handle_popups(driver):
         pass
 
 def perform_login(driver):
-    """ဝဘ်ဆိုဒ်မှ အကောင့်ပြန်ထွက်သွားပါက အလိုအလျောက် Login ပြန်ဝင်ပေးမည့် သီးသန့်စနစ်"""
-    print("🔑 Redirected to login page. Performing auto-login...")
+    """လူအစစ်ကဲ့သို့ အချိန်ခြားပြီး သေချာစွာ အကောင့်ဝင်ပေးမည့်စနစ်"""
+    print("🔑 Performing secure auto-login flow...")
     wait = WebDriverWait(driver, 15)
     try:
         handle_popups(driver)
         
-        # သင့်မူရင်း wingobot5.py ထဲမှ selector များအတိုင်း ကွက်တိအလုပ်လုပ်စေခြင်း
+        # ၁။ ဖုန်းနံပါတ် ရိုက်ထည့်ခြင်း
         phone_input = wait.until(EC.presence_of_element_located((By.NAME, "userNumber")))
         phone_input.clear()
         phone_input.send_keys(PHONE)
+        time.sleep(3) # ဝဘ်ဆိုဒ်မှ Input Event သိရှိစေရန် စောင့်ခြင်း
         
+        # ၂။ စကားဝှက် ရိုက်ထည့်ခြင်း
         password_input = driver.find_element(By.XPATH, "//input[@type='password']")
         password_input.clear()
         password_input.send_keys(PASSWORD)
+        time.sleep(3)
         
-        login_btn = driver.find_element(By.XPATH, "//button[contains(@class, 'active')]")
-        driver.execute_script("arguments[0].click();", login_btn)
-        
-        print("✅ Login credentials submitted. Waiting for session...")
+        # ၃။ Login ခလုတ်ကို ပုံမှန်ကော JavaScript ဖြင့်ပါ စမ်းသပ်နှိပ်ခြင်း
+        login_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'active')]")))
+        try:
+            login_btn.click()
+        except:
+            driver.execute_script("arguments[0].click();", login_btn)
+            
+        print("✅ Login submitted successfully. Waiting for redirect...")
         time.sleep(8)
         return True
     except Exception as e:
-        print(f"❌ Auto-Login Failed: {e}")
+        print(f"❌ Auto-Login Interaction Failed: {e}")
         return False
 
 def navigate_to_wingo_30s(driver):
@@ -88,6 +95,7 @@ def navigate_to_wingo_30s(driver):
     print("⏳ Switching to 30 Seconds Game Mode...")
     wait = WebDriverWait(driver, 15)
     try:
+        # 💡 အမှားပြင်ဆင်ပြီးချက် - By.XPATH သို့ လုံးဝကွက်တိ ပြောင်းလဲထားပါတယ် ခင်ဗျာ ✅
         thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
         driver.execute_script("arguments[0].click();", thirty_sec_btn)
         time.sleep(3)
@@ -109,7 +117,7 @@ def get_latest_row_data(driver):
     handle_popups(driver)
     try:
         row = driver.find_element(By.CSS_SELECTOR, ".GameRecord__C-body .van-row")
-        period = row.find_element(By.CSS_SELECTOR, "div.van-col--9").text.strip()
+        period = row.find_Col = row.find_element(By.CSS_SELECTOR, "div.van-col--9").text.strip()
         number = row.find_element(By.CSS_SELECTOR, ".GameRecord__C-body-num").text.strip()
         result = row.find_element(By.CSS_SELECTOR, "div.van-col--5 span").text.strip()
         return period, number, result
@@ -171,7 +179,7 @@ def check_and_log_patterns(trigger_period):
                 print(f"🚨 Pattern Detected: 8-Period ZIGZAG ({trigger_period})")
 
 def run_scraper_bot():
-    print("🤖 Starting Headless Selenium Scraper Thread with Hybrid Recovery Logic...")
+    print("🤖 Starting Headless Selenium Scraper Thread with Safe Fallbacks...")
     
     options = Options()
     options.add_argument("--headless=new")
@@ -225,14 +233,11 @@ def run_scraper_bot():
                 current_url = driver.current_url
                 print(f"⚠️ Loop Exception! URL='{current_url}' | Title='{driver.title}'")
                 
-                # 🧠 သင့်ဗျူဟာ + ခွဲခြားမှုစနစ် ပေါင်းစပ်ထားသော နေရာဖြစ်ပါတယ်
                 if "login" in current_url:
-                    # အခြေအနေ (က) - အကယ်၍ Login Page သို့ ရောက်သွားပါက အကောင့် အရင်ဝင်မည်
                     if perform_login(driver):
                         navigate_to_wingo_30s(driver)
                 else:
-                    # အခြေအနေ (ခ) - URL က WinGo ထဲမှာပဲ ရှိနေသေးရင် သင့်အိုင်ဒီယာအတိုင်း စာမျက်နှာကို ပြန်လည်ဝင်ရောက်မည်
-                    print("🔄 Still on WinGo page but element missing. Re-navigating to fix lag/popups...")
+                    print("🔄 Re-navigating to WinGo page to fix lag or popups...")
                     navigate_to_wingo_30s(driver)
                 
                 time.sleep(3)
