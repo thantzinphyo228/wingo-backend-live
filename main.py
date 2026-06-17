@@ -53,12 +53,11 @@ def handle_popups(driver):
         pass
 
 def perform_login(driver):
-    """wingobot5.py မူရင်းပုံစံအတိုင်း ကွက်တိ Login ဝင်ပေးမည့်စနစ်"""
     print("🔑 Performing secure auto-login flow...", flush=True)
     wait = WebDriverWait(driver, 15)
     try:
         driver.get("https://www.cklottery.club/#/login")
-        time.sleep(3)
+        time.sleep(4)
         handle_popups(driver)
         
         wait.until(EC.presence_of_element_located((By.NAME, "userNumber"))).send_keys(PHONE)
@@ -74,7 +73,6 @@ def perform_login(driver):
         return False
 
 def navigate_to_wingo_30s(driver):
-    """WinGo သို့သွား၍ 30s Mode ပြောင်းသည့်စနစ် (By.XPATH ကို ၁၀၀% စစ်ဆေးပြီး)"""
     print("🎮 Navigating to WinGo Game Page...", flush=True)
     driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
     print("✅ Win Go Page ကို ရောက်ရှိပါပြီ။", flush=True)
@@ -82,20 +80,19 @@ def navigate_to_wingo_30s(driver):
     handle_popups(driver)
     
     print("⏳ 30 Seconds ပွဲစဉ်သို့ ပြောင်းလဲနေပါသည်...", flush=True)
-    wait = WebDriverWait(driver, 15)
+    wait = WebDriverWait(driver, 10)
     try:
-        # 🎯 FIXED: By.XPATH ဖြင့် စာလုံးပေါင်း လုံးဝ အမှန်ပြင်ထားပါတယ်ဗျာ
         thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
         driver.execute_script("arguments[0].click();", thirty_sec_btn)
-        print("✅ Primary XPATH Method ဖြင့် 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
+        print("✅ 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
     except Exception as e:
-        print(f"⚠️ Primary Tab navigation failed, trying fallback... Error: {e}", flush=True)
+        print(f"⚠️ Fallback သုံးပါမည်။ Error: {e}", flush=True)
         try:
             tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
             for tab in tabs:
                 if "30s" in tab.text:
                     driver.execute_script("arguments[0].click();", tab)
-                    print("✅ Fallback Method ဖြင့် 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
+                    print("✅ Fallback ဖြင့် 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
                     break
         except Exception as fb_err:
             print(f"❌ Both Navigation Methods Failed: {fb_err}", flush=True)
@@ -168,7 +165,7 @@ def check_and_log_patterns(trigger_period):
                 print(f"🚨 Pattern Detected: 8-Period ZIGZAG ({trigger_period})", flush=True)
 
 def run_scraper_bot():
-    print("🤖 Starting Headless Selenium Scraper Thread with Safe Fallbacks...", flush=True)
+    print("🤖 Starting Headless Selenium Scraper Thread with Light-Weight Memory Optimization...", flush=True)
     
     options = Options()
     options.add_argument("--headless=new")
@@ -176,7 +173,11 @@ def run_scraper_bot():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit=537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # 🚀 Render 512MB RAM ပေါ်တွင် မအေးခဲစေရန် ရုပ်ပုံများနှင့် အန်နီမေးရှင်းများ ပိတ်ဆို့သည့် စနစ်
+    options.add_argument("--blink-settings=imagesEnabled=false")
+    options.add_argument("--disable-software-rasterizer")
     
     driver = None
     try:
