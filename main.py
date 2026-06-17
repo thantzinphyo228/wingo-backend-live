@@ -53,75 +53,61 @@ def handle_popups(driver):
         pass
 
 def perform_login(driver):
-    """လူအစစ်ကဲ့သို့ အချိန်ခြားပြီး သေချာစွာ အကောင့်ဝင်ပေးမည့်စနစ်"""
+    """wingobot5.py မူရင်းပုံစံအတိုင်း ကွက်တိ Login ဝင်ပေးမည့်စနစ်"""
     print("🔑 Performing secure auto-login flow...")
     wait = WebDriverWait(driver, 15)
     try:
+        driver.get("https://www.cklottery.club/#/login")
+        time.sleep(3)
         handle_popups(driver)
         
-        # ၁။ ဖုန်းနံပါတ် ရိုက်ထည့်ခြင်း
-        phone_input = wait.until(EC.presence_of_element_located((By.NAME, "userNumber")))
-        phone_input.clear()
-        phone_input.send_keys(PHONE)
-        time.sleep(3) # ဝဘ်ဆိုဒ်မှ Input Event သိရှိစေရန် စောင့်ခြင်း
-        
-        # ၂။ စကားဝှက် ရိုက်ထည့်ခြင်း
-        password_input = driver.find_element(By.XPATH, "//input[@type='password']")
-        password_input.clear()
-        password_input.send_keys(PASSWORD)
-        time.sleep(3)
-        
-        # ၃။ Login ခလုတ်ကို ပုံမှန်ကော JavaScript ဖြင့်ပါ စမ်းသပ်နှိပ်ခြင်း
-        login_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'active')]")))
-        try:
-            login_btn.click()
-        except:
-            driver.execute_script("arguments[0].click();", login_btn)
-            
-        print("✅ Login submitted successfully. Waiting for redirect...")
+        # wingobot5.py မူရင်း ကုဒ်လိုင်းများအတိုင်း ကွက်တိ ရေးသားထားခြင်း
+        wait.until(EC.presence_of_element_located((By.NAME, "userNumber"))).send_keys(PHONE)
+        driver.find_element(By.XPATH, "//input[@type='password']").send_keys(PASSWORD)
+        time.sleep(8)
+        login_btn = driver.find_element(By.XPATH, "//button[contains(@class, 'active')]")
+        driver.execute_script("arguments[0].click();", login_btn)
+        print("✅ Login အောင်မြင်စွာ ဝင်ပြီးပါပြီ။")
         time.sleep(8)
         return True
     except Exception as e:
-        print(f"❌ Auto-Login Interaction Failed: {e}")
+        print(f"❌ Auto-Login Failed: {e}")
         return False
 
 def navigate_to_wingo_30s(driver):
-    """WinGo စာမျက်နှာသို့ သွားပြီး 30s Mode သို့ ကူးပြောင်းပေးသည့် စနစ်"""
+    """wingobot5.py မူရင်းပုံစံအတိုင်း WinGo သို့သွား၍ 30s Mode ပြောင်းသည့်စနစ်"""
     print("🎮 Navigating to WinGo Game Page...")
     driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
-    time.sleep(6)
+    print("✅ Win Go Page ကို ရောက်ရှိပါပြီ။")
+    time.sleep(5)
     handle_popups(driver)
     
-    print("⏳ Switching to 30 Seconds Game Mode...")
+    print("⏳ 30 Seconds ပွဲစဉ်သို့ ပြောင်းလဲနေပါသည်...")
     wait = WebDriverWait(driver, 15)
     try:
-        # 💡 အမှားပြင်ဆင်ပြီးချက် - By.XPATH သို့ လုံးဝကွက်တိ ပြောင်းလဲထားပါတယ် ခင်ဗျာ ✅
         thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
         driver.execute_script("arguments[0].click();", thirty_sec_btn)
-        time.sleep(3)
-        print("✅ Successfully switched to 30s Mode.")
-    except Exception as tab_err:
-        print(f"⚠️ Primary Tab navigation failed, trying fallback... Error: {tab_err}")
-        try:
-            tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
-            for tab in tabs:
-                if "30s" in tab.text:
-                    driver.execute_script("arguments[0].click();", tab)
-                    print("✅ Fallback switched to 30s Mode successfully.")
-                    break
-        except Exception as fb_err:
-            print(f"❌ Both Navigation Methods Failed: {fb_err}")
-    time.sleep(2)
+    except:
+        tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
+        for tab in tabs:
+            if "30s" in tab.text:
+                driver.execute_script("arguments[0].click();", tab)
+                break
+    time.sleep(3)
 
 def get_latest_row_data(driver):
+    """wingobot5.py မူရင်းပုံစံအတိုင်း HTML Row မှ ဒေတာဖတ်ခြင်း (Typo ပြင်ဆင်ပြီး)"""
     handle_popups(driver)
     try:
         row = driver.find_element(By.CSS_SELECTOR, ".GameRecord__C-body .van-row")
-        period = row.find_Col = row.find_element(By.CSS_SELECTOR, "div.van-col--9").text.strip()
+        
+        period = row.find_element(By.CSS_SELECTOR, "div.van-col--9").text.strip()
         number = row.find_element(By.CSS_SELECTOR, ".GameRecord__C-body-num").text.strip()
         result = row.find_element(By.CSS_SELECTOR, "div.van-col--5 span").text.strip()
+        
         return period, number, result
-    except:
+    except Exception as e:
+        print(f"⚠️ Row Data Read Error: {e}")
         return None, None, None
 
 def check_and_log_patterns(trigger_period):
