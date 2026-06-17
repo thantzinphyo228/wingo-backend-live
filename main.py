@@ -88,7 +88,7 @@ def navigate_to_wingo_30s(driver):
     print("⏳ Switching to 30 Seconds Game Mode...")
     wait = WebDriverWait(driver, 15)
     try:
-        thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.橫, "//div[contains(text(), '30s')]")))
+        thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
         driver.execute_script("arguments[0].click();", thirty_sec_btn)
         time.sleep(3)
         print("✅ Successfully switched to 30s Mode.")
