@@ -95,43 +95,43 @@ def navigate_to_wingo_30s(driver):
 
     print("⏳ Searching 30s button...", flush=True)
 
-    try:
-        wait = WebDriverWait(driver, 15)
+    # try:
+    #     wait = WebDriverWait(driver, 15)
 
-        thirty_sec_btn = wait.until(
-            EC.presence_of_element_located(
-                (By.XPATH, "//*[contains(text(),'30s')]")
-            )
-        )
+    #     thirty_sec_btn = wait.until(
+    #         EC.presence_of_element_located(
+    #             (By.XPATH, "//*[contains(text(),'30s')]")
+    #         )
+    #     )
 
-        print("✅ 30s element found", flush=True)
+    #     print("✅ 30s element found", flush=True)
 
-        driver.execute_script(
-            "arguments[0].scrollIntoView();",
-            thirty_sec_btn
-        )
+    #     driver.execute_script(
+    #         "arguments[0].scrollIntoView();",
+    #         thirty_sec_btn
+    #     )
 
-        time.sleep(2)
+    #     time.sleep(2)
 
-        driver.execute_script(
-            "arguments[0].click();",
-            thirty_sec_btn
-        )
+    #     driver.execute_script(
+    #         "arguments[0].click();",
+    #         thirty_sec_btn
+    #     )
 
-        print("✅ 30s clicked successfully", flush=True)
+    #     print("✅ 30s clicked successfully", flush=True)
 
-    except Exception as e:
+    # except Exception as e:
 
-        print("❌ 30s Button NOT Found", flush=True)
-        print("ERROR:", str(e), flush=True)
+    #     print("❌ 30s Button NOT Found", flush=True)
+    #     print("ERROR:", str(e), flush=True)
 
-        try:
-            print("📄 PAGE SOURCE SAMPLE:", flush=True)
-            print(driver.page_source[:3000], flush=True)
-        except:
-            pass
+    #     try:
+    #         print("📄 PAGE SOURCE SAMPLE:", flush=True)
+    #         print(driver.page_source[:3000], flush=True)
+    #     except:
+    #         pass
 
-    time.sleep(3)
+    # time.sleep(3)
 
     print("🚀 Finished navigate_to_wingo_30s()", flush=True)
 
