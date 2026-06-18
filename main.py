@@ -74,29 +74,68 @@ def perform_login(driver):
 
 def navigate_to_wingo_30s(driver):
     print("🎮 Navigating to WinGo Game Page...", flush=True)
-    driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
-    print("✅ Win Go Page ကို ရောက်ရှိပါပြီ။", flush=True)
-    time.sleep(5)
-    handle_popups(driver)
+
     
-    print("⏳ 30 Seconds ပွဲစဉ်သို့ ပြောင်းလဲနေပါသည်...", flush=True)
-    wait = WebDriverWait(driver, 10)
+    driver.get("https://www.cklottery.club/#/home/AllLotteryGames/WinGo?id=1")
+
+    print("📄 Page loaded", flush=True)
+    print("🌐 URL:", driver.current_url, flush=True)
+    print("📌 TITLE:", driver.title, flush=True)
+
+    time.sleep(5)
+
+    handle_popups(driver)
+
+    # Screenshot save
     try:
-        thirty_sec_btn = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(text(), '30s')]")))
-        driver.execute_script("arguments[0].click();", thirty_sec_btn)
-        print("✅ 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
+        driver.save_screenshot("/tmp/wingo_debug.png")
+        print("📸 Screenshot saved", flush=True)
     except Exception as e:
-        print(f"⚠️ Fallback သုံးပါမည်။ Error: {e}", flush=True)
+        print("❌ Screenshot Error:", e, flush=True)
+
+    print("⏳ Searching 30s button...", flush=True)
+
+    try:
+        wait = WebDriverWait(driver, 15)
+
+        thirty_sec_btn = wait.until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//*[contains(text(),'30s')]")
+            )
+        )
+
+        print("✅ 30s element found", flush=True)
+
+        driver.execute_script(
+            "arguments[0].scrollIntoView();",
+            thirty_sec_btn
+        )
+
+        time.sleep(2)
+
+        driver.execute_script(
+            "arguments[0].click();",
+            thirty_sec_btn
+        )
+
+        print("✅ 30s clicked successfully", flush=True)
+
+    except Exception as e:
+
+        print("❌ 30s Button NOT Found", flush=True)
+        print("ERROR:", str(e), flush=True)
+
         try:
-            tabs = driver.find_elements(By.CLASS_NAME, "GameList__C-item")
-            for tab in tabs:
-                if "30s" in tab.text:
-                    driver.execute_script("arguments[0].click();", tab)
-                    print("✅ Fallback ဖြင့် 30s ပြောင်းလဲမှု အောင်မြင်သည်။", flush=True)
-                    break
-        except Exception as fb_err:
-            print(f"❌ Both Navigation Methods Failed: {fb_err}", flush=True)
+            print("📄 PAGE SOURCE SAMPLE:", flush=True)
+            print(driver.page_source[:3000], flush=True)
+        except:
+            pass
+
     time.sleep(3)
+
+    print("🚀 Finished navigate_to_wingo_30s()", flush=True)
+
+
 
 def get_latest_row_data(driver):
     handle_popups(driver)
