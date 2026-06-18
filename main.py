@@ -62,7 +62,7 @@ def perform_login(driver):
         
         wait.until(EC.presence_of_element_located((By.NAME, "userNumber"))).send_keys(PHONE)
         driver.find_element(By.XPATH, "//input[@type='password']").send_keys(PASSWORD)
-
+        time.sleep(8)
         login_btn = driver.find_element(By.XPATH, "//button[contains(@class, 'active')]")
         driver.execute_script("arguments[0].click();", login_btn)
         print("✅ Login အောင်မြင်စွာ ဝင်ပြီးပါပြီ။", flush=True)
