@@ -53,24 +53,45 @@ def handle_popups(driver):
         pass
 
 def perform_login(driver):
-    print("🔑 Performing secure auto-login flow...", flush=True)
-    wait = WebDriverWait(driver, 15)
+    wait = WebDriverWait(driver, 20)
+
+
     try:
         driver.get("https://www.cklottery.club/#/login")
-        time.sleep(4)
-        handle_popups(driver)
-        
-        wait.until(EC.presence_of_element_located((By.NAME, "userNumber"))).send_keys(PHONE)
-        driver.find_element(By.XPATH, "//input[@type='password']").send_keys(PASSWORD)
-        time.sleep(8)
-        login_btn = driver.find_element(By.XPATH, "//button[contains(@class, 'active')]")
-        driver.execute_script("arguments[0].click();", login_btn)
-        print("✅ Login အောင်မြင်စွာ ဝင်ပြီးပါပြီ။", flush=True)
-        time.sleep(8)
+
+        time.sleep(5)
+
+        wait.until(
+            EC.presence_of_element_located(
+                (By.NAME, "userNumber")
+            )
+        ).send_keys(PHONE)
+
+        driver.find_element(
+            By.XPATH,
+            "//input[@type='password']"
+        ).send_keys(PASSWORD)
+
+        driver.find_element(
+            By.XPATH,
+            "//button[contains(@class,'active')]"
+        ).click()
+
+        time.sleep(10)
+
+        print("AFTER LOGIN URL =", driver.current_url, flush=True)
+
+        if "login" in driver.current_url:
+            print("❌ LOGIN FAILED", flush=True)
+            return False
+
+        print("✅ LOGIN SUCCESS", flush=True)
         return True
+
     except Exception as e:
-        print(f"❌ Auto-Login Failed: {e}", flush=True)
+        print("LOGIN ERROR:", e, flush=True)
         return False
+
 
 def navigate_to_wingo_30s(driver):
     print("🎮 Navigating to WinGo Game Page...", flush=True)
